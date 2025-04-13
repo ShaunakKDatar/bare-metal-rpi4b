@@ -1,24 +1,41 @@
 #pragma once
 #include <stdint.h>
 #include "base.h"
+struct GpioPinData {
+    uint32_t reserved;
+    uint32_t data[2];
+};
 
-// GPIO Register Offsets
-#define GPFSEL0    (RPI_PERIPHERAL_BASE + 0x00200000)
-#define GPSET0     (RPI_PERIPHERAL_BASE + 0x0020001C)
-#define GPCLR0     (RPI_PERIPHERAL_BASE + 0x00200028)
+struct GpioRegs {
+    uint32_t func_select[6];
+    struct GpioPinData output_set;
+    struct GpioPinData output_clear;
+    struct GpioPinData level;
+    struct GpioPinData ev_detect_status;
+    struct GpioPinData re_detect_enable;
+    struct GpioPinData fe_detect_enable;
+    struct GpioPinData hi_detect_enable;
+    struct GpioPinData lo_detect_enable;
+    struct GpioPinData async_re_detect;
+    struct GpioPinData async_fe_detect;
+    uint32_t reserved;
+    uint32_t pupd_enable;
+    uint32_t pupd_enable_clocks[2];
+};
 
-// Alternate Function enum
-typedef enum {
-    ALT_FN_INPUT  = 0b000,
-    ALT_FN_OUTPUT = 0b001,
-    ALT_FN_0      = 0b100,
-    ALT_FN_1      = 0b101,
-    ALT_FN_2      = 0b110,
-    ALT_FN_3      = 0b111,
-    ALT_FN_4      = 0b011,
-    ALT_FN_5      = 0b010
-} ALT_F;
+#define REGS_GPIO ((struct GpioRegs *)(RPI_PERIPHERAL_BASE + 0x00200000))
 
+typedef enum _GpioFunc {
+    GFInput = 0,
+    GFOutput = 1,
+    GFAlt0 = 4,
+    GFAlt1 = 5,
+    GFAlt2 = 6,
+    GFAlt3 = 7,
+    GFAlt4 = 3,
+    GFAlt5 = 2
+} GpioFunc;
 
-int gpio_select(int gpio_number, ALT_F alt);
-int gpio_enable(int gpio_number);
+void gpio_pin_set_func(uint8_t pinNumber, GpioFunc func);
+
+void gpio_pin_enable(uint8_t pinNumber);
