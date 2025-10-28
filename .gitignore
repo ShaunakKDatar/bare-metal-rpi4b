@@ -2,3 +2,5 @@
 build
 kernel8.img
 kernel8.elf
+armstub-new.bin
+armstub/build

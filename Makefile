@@ -1,68 +1,39 @@
-# --------------------------------------------------------------
-#  Raspberry Pi 4 bare-metal build
-# --------------------------------------------------------------
+ARMGNU ?= aarch64-none-elf
 
-# --- tool-chain prefix (override on command line if needed) ---
-#   examples:
-#     brew install aarch64-elf-gcc     → prefix = aarch64-elf
-#     sudo apt install gcc-aarch64-linux-gnu → prefix = aarch64-linux-gnu
-TOOLCHAIN ?= aarch64-none-elf
+COPS = -Wall -nostdlib -nostartfiles -ffreestanding -Iinclude -mgeneral-regs-only
+ASMOPS = -Iinclude 
 
-CC      := $(TOOLCHAIN)-gcc
-LD      := $(TOOLCHAIN)-ld
-OBJCOPY := $(TOOLCHAIN)-objcopy
+BUILD_DIR = build
+SRC_DIR = src
 
-# --- optional debug banner ------------------------------------
-ifeq ($(DEBUG),1)
-    $(info ▶ DEBUG_UART enabled)
-    DEBUGFLAG := -DDEBUG_UART
-else
-    DEBUGFLAG :=
-endif
+all : kernel8.img armstub
 
-# --- flags -----------------------------------------------------
-INCDIR  := -Iinclude
-CFLAGS  := -Wall -Wextra -ffreestanding -nostdlib -nostartfiles \
-           -mgeneral-regs-only -g $(INCDIR) $(DEBUGFLAG)
-ASFLAGS := -nostdlib -x assembler-with-cpp $(INCDIR) $(DEBUGFLAG)
-LDFLAGS := -T src/linker.ld
+clean :
+	rm -rf $(BUILD_DIR) *.img 
 
-# --- file lists ------------------------------------------------
-C_SRC   := $(wildcard src/*.c)
-S_SRC   := $(wildcard src/*.S)
-OBJDIR  := build
-C_OBJS  := $(patsubst src/%.c,$(OBJDIR)/%.o,$(C_SRC))
-S_OBJS  := $(patsubst src/%.S,$(OBJDIR)/%.o,$(S_SRC))
-OBJS    := $(C_OBJS) $(S_OBJS)
-DEPS    := $(OBJS:.o=.d)
+$(BUILD_DIR)/%_c.o: $(SRC_DIR)/%.c
+	mkdir -p $(@D)
+	$(ARMGNU)-gcc $(COPS) -MMD -c $< -o $@
 
-# --------------------------------------------------------------
-#  Rules
-# --------------------------------------------------------------
-.PHONY: all clean
-all: kernel8.img
+$(BUILD_DIR)/%_s.o: $(SRC_DIR)/%.S
+	$(ARMGNU)-gcc $(ASMOPS) -MMD -c $< -o $@
 
-# object files
-$(OBJDIR)/%.o: src/%.c | $(OBJDIR)
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+C_FILES = $(wildcard $(SRC_DIR)/*.c)
+ASM_FILES = $(wildcard $(SRC_DIR)/*.S)
+OBJ_FILES = $(C_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%_c.o)
+OBJ_FILES += $(ASM_FILES:$(SRC_DIR)/%.S=$(BUILD_DIR)/%_s.o)
 
-$(OBJDIR)/%.o: src/%.S | $(OBJDIR)
-	$(CC) $(ASFLAGS) -MMD -c $< -o $@
+DEP_FILES = $(OBJ_FILES:%.o=%.d)
+-include $(DEP_FILES)
 
-# final link & image
-kernel8.elf: $(OBJS) src/linker.ld
-	$(LD) $(LDFLAGS) $(OBJS) -o $(OBJDIR)/kernel8.elf
-	cp $(OBJDIR)/kernel8.elf $@
+kernel8.img: $(SRC_DIR)/linker.ld $(OBJ_FILES)
+	$(ARMGNU)-ld -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/kernel8.elf  $(OBJ_FILES)
+	$(ARMGNU)-objcopy $(BUILD_DIR)/kernel8.elf -O binary kernel8.img
 
-kernel8.img: kernel8.elf
-	$(OBJCOPY) -O binary $(OBJDIR)/kernel8.elf $@
+armstub/build/armstub_s.o: armstub/src/armstub.S
+	mkdir -p $(@D)
+	$(ARMGNU)-gcc $(COPS) -MMD -c $< -o $@
 
-# helper dirs & clean
-$(OBJDIR):
-	mkdir -p $@
-
-clean:
-	rm -rf $(OBJDIR) kernel8.elf kernel8.img
-
-# include auto-generated deps
--include $(DEPS)
+armstub: armstub/build/armstub_s.o
+	$(ARMGNU)-ld --section-start=.text=0 -o armstub/build/armstub.elf armstub/build/armstub_s.o
+	$(ARMGNU)-objcopy armstub/build/armstub.elf -O binary armstub-new.bin
