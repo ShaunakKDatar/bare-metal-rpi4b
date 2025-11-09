@@ -1,4 +1,4 @@
-#include "pl011.h"
+#include "drivers/pl011.h"
 
 #define UART_INT_RX (1 << 4)
 #define UART_INT_TX (1 << 5)

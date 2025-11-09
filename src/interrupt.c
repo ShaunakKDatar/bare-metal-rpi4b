@@ -1,5 +1,5 @@
 #include "interrupt.h"
-#include "timer.h"
+#include "drivers/timer.h"
 #include "printf.h"
 
 void enable_interrupt_controller(void)

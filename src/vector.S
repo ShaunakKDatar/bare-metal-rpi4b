@@ -91,6 +91,12 @@ handle_irq_entry:
     load_gprs
     eret
 
+.global ret_from_fork
+ret_from_fork:
+    bl schedule_tail
+    mov x0, x20 // arg
+    blr x19 // jump to the address we gave in fork
+
 // Error handler - infinite loop
 .globl err_hang
 err_hang:

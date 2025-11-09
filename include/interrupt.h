@@ -24,6 +24,7 @@
 void irq_vector_init(void);
 void enable_irq(void);
 void disable_irq(void);
+void ret_from_fork(void);
 #endif
 void enable_interrupt_controller(void);
 void handle_irq(void);

@@ -1,6 +1,5 @@
 #include "mm.h"
 #include "sysregs.h"
-#define DEBUG_UART
     .section .text.boot
     .global _start
 
@@ -30,8 +29,11 @@ master:
 el1_entry:
     msr spsel, #1
     # clear .bss
-    adr x0, bss_begin
-    adr x1, bss_end
+    adrp    x0, bss_begin
+    add     x0, x0, :lo12:bss_begin
+
+    adrp    x1, bss_end
+    add     x1, x1, :lo12:bss_end
     sub x1, x1, x0
     bl  memzero
 

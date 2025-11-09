@@ -1,6 +1,6 @@
-#include "gpio.h"
+#include "drivers/gpio.h"
 #include "utils.h"
-#include "mini_uart.h"
+#include "drivers/mini_uart.h"
 
 #define TXD 14
 #define RXD 15
