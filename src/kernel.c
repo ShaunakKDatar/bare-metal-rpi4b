@@ -17,6 +17,7 @@ void task3(uint64_t arg);
 void kernel_main(void)
 {
     pl011_init();
+    init_printf(0, putc);
     printf("Booting kernel...\n");
     
     // Initialize memory and scheduler
@@ -29,6 +30,8 @@ void kernel_main(void)
     
     // Enable timer
     timer_init();
+    irq_vector_init();
+    enable_interrupt_controller();
     enable_irq();
     
     // Idle loop
